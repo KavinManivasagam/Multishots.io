@@ -16,29 +16,15 @@ const SPEED = 10
 const RADIUS = 10
 const PROJECTILE_RADIUS = 5
 let projectileId = 0
+
 io.on('connection', (socket) => {
   console.log('a user connected')
-  backEndPlayers[socket.id] = {
-    x: 500 * Math.random(),
-    y: 500 * Math.random(),
-    color: `hsl(${360 * Math.random()}, 100%, 50%)`,
-    sequenceNumber: 0,
-    score: 0
-  }
-
+  
   io.emit('updatePlayers', backEndPlayers)
-  socket.on('initCanvas', ({ width, height, devicePixelRatio }) => {
-    backEndPlayers[socket.id].canvas = {
-      width,
-      height
-    }
-    backEndPlayers[socket.id].radius = RADIUS
-    if (devicePixelRatio > 1) {
-      backEndPlayers[socket.id].radius = 2 * RADIUS
-    }
-  })
+
   socket.on('shoot', ({ x, y, angle }) => {
     projectileId++
+
     const velocity = {
       x: Math.cos(angle) * 5,
       y: Math.sin(angle) * 5
@@ -51,7 +37,30 @@ io.on('connection', (socket) => {
     }
     console.log(backEndProjectiles)
   })
-  socket.on('disconnect', (reason) => {
+
+  socket.on('initGame', ({ username, width, height, devicePixelRatio }) => {
+    backEndPlayers[socket.id] = {
+      x: 500 * Math.random(),
+      y: 500 * Math.random(),
+      color: `hsl(${360 * Math.random()}, 100%, 50%)`,
+      sequenceNumber: 0,
+      score: 0,
+      username
+    }
+
+    // where we init our canvas
+    backEndPlayers[socket.id].canvas = {
+      width,
+      height
+    }
+
+    backEndPlayers[socket.id].radius = RADIUS
+
+    if (devicePixelRatio > 1) {
+      backEndPlayers[socket.id].radius = 2 * RADIUS
+    }
+  })
+socket.on('disconnect', (reason) => {
     console.log(reason)
     delete backEndPlayers[socket.id]
     io.emit('updatePlayers', backEndPlayers)
@@ -98,7 +107,6 @@ setInterval(() => {
         backEndProjectiles[id].x - backEndPlayer.x,
         backEndProjectiles[id].y - backEndPlayer.y
       )
-
       // collision detection
       if (
         DISTANCE < PROJECTILE_RADIUS + backEndPlayer.radius &&
@@ -106,7 +114,6 @@ setInterval(() => {
       ) {
         if (backEndPlayers[backEndProjectiles[id].playerId])
           backEndPlayers[backEndProjectiles[id].playerId].score++
-
         console.log(backEndPlayers[backEndProjectiles[id].playerId])
         delete backEndProjectiles[id]
         delete backEndPlayers[playerId]
